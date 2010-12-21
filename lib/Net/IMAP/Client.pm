@@ -579,6 +579,7 @@ sub expunge {
 
 sub last_error {
     my ($self) = @_;
+    $self->{_error} =~ s/\s+$//s; # remove trailing carriage return
     return $self->{_error};
 }
 
