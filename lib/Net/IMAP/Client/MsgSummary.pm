@@ -165,6 +165,8 @@ sub has_attachments {
 
 sub is_message { $_[0]->content_type eq 'message/rfc822' }
 
+sub message { $_[0]->{message} }
+
 sub _parse_body {
     my ($self, $struct) = @_;
 
@@ -192,8 +194,10 @@ sub _parse_body {
 
         if ($self->is_message && $struct->[7] && $struct->[8]) {
             # continue parsing attached message
-            $self->_parse_envelope($struct->[7]);
-            $self->_parse_body($struct->[8]);
+            $self->{message} = __PACKAGE__->new({
+                ENVELOPE => $struct->[7],
+                BODY => $struct->[8],
+            });
         }
     }
 }
@@ -235,8 +239,10 @@ sub _parse_bodystructure {
 
         if ($self->is_message && $struct->[7] && $struct->[8]) {
             # continue parsing attached message
-            $self->_parse_envelope($struct->[7]);
-            $self->_parse_bodystructure($struct->[8]);
+            $self->{message} = __PACKAGE__->new({
+                ENVELOPE => $struct->[7],
+                BODYSTRUCTURE => $struct->[8],
+            });
         } elsif ($self->type ne 'text') {
             $self->{md5} = $struct->[7];
             my $a = $struct->[8];
@@ -527,6 +533,10 @@ Returns true if this object represents a message (i.e. has
 content_type eq 'message/rfc822').  Note that it won't return true for
 the toplevel part, but you B<know> that that part represents a
 message. ;-)
+
+=item C<message>
+
+Returns the message
 
 =item C<headers>
 
