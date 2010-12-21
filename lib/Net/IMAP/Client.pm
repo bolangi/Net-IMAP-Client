@@ -452,6 +452,8 @@ sub delete_folder {
 
 sub append {
     my ($self, $folder, $rfc822, $flags, $date) = @_;
+    die 'message body passed to append() must be a SCALAR reference'
+        unless ref $rfc822 eq 'SCALAR';
     my $quoted = $folder;
     _string_quote($quoted);
     my $args = [ "$quoted " ];
@@ -1736,7 +1738,7 @@ of them will receive "RECENT" notifications; others will have to rely
 on "EXISTS" to tell when new messages have arrived.  Therefore I can
 only say that "RECENT" is useless and I advise you to ignore it.
 
-=head2 append($folder, $rfc822, $flags, $date)
+=head2 append($folder, \$rfc822, $flags, $date)
 
 Appends a message to the given C<$folder>.  You must pass the full
 RFC822 body in C<$rfc822>.  C<$flags> and C<$date> are optional.  If
