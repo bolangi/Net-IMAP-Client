@@ -536,7 +536,7 @@ message. ;-)
 
 =item C<message>
 
-Returns the message
+Returns the attached rfc822 message
 
 =item C<headers>
 
