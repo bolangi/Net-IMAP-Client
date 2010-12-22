@@ -140,8 +140,8 @@ sub status {
         }
     }
     return $wants_one 
-		? (defined $name and $ret{$name})  # avoid data on undef key
-		: \%ret;
+        ? (defined $name and $ret{$name})  # avoid data on undef key
+        : \%ret;
 }
 
 sub select {
