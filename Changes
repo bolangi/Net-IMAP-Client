@@ -1,5 +1,21 @@
 Revision history for Net-IMAP-Client
 
+0.94    Dec 22, 2010
+
+        - fix #56647 rfc822 attachment mishandling
+        - fix #43046 Does not strip \r from error messages
+        - fix #59462, #43047 creation of non-modifiable array attempted
+        - fix #43049 append() method's documentation
+        - fix status(): avoid returning data from undef key
+
+0.93    
+        - add namespace() method
+        - modify get_summaries() to always return array ref
+
+0.92    Feb 28, 2009
+
+        - Doc updates
+
 0.91    Feb 27, 2009
 
 	Fixed get_summary to correctly identify the attachment filenames
