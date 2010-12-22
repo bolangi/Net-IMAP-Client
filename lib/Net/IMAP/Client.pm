@@ -712,7 +712,7 @@ sub _cmd_ok {
         return 1;
     } elsif ($res =~ /^NIC$id\s+(?:NO|BAD)(?:\s+(.+))?/i) {
         my $error = $1 || 'unknown error';
-	$self->{_error} = $error;
+        $self->{_error} = $error;
         return 0;
     }
     return undef;
@@ -762,16 +762,16 @@ sub _tell_imap {
     }
 
     $lineparts = [];      # holds results in boxes
-	my $accumulator = []; # box for collecting results
+    my $accumulator = []; # box for collecting results
     while ($res = $self->_socket_getline) {
         # print STDERR ">>>>$res<<<<<\n";
 
         if ($res =~ /^\*/) {
 
-			# store previous box and start a new one
+            # store previous box and start a new one
 
-			push @$lineparts, $accumulator if @$accumulator;
-			$accumulator = []; 
+            push @$lineparts, $accumulator if @$accumulator;
+            $accumulator = []; 
         }
         if ($res =~ /(.*)\{(\d+)\}\r\n/) {
             my ($line, $len) = ($1, $2 + 0);
@@ -787,8 +787,8 @@ sub _tell_imap {
             }
         }
     }
-	# store last box
-	push @$lineparts, $accumulator if @$accumulator;
+    # store last box
+    push @$lineparts, $accumulator if @$accumulator;
 
     unless (defined $res) {
         goto RETRY1 if $self->_reconnect_if_needed(1);
@@ -847,13 +847,13 @@ sub _tell_imap2 {
     %results = ();
     for (0..$#cmd) {
         my $lineparts = [];
-		my $accumulator = [];
+        my $accumulator = [];
         my $res;
         while ($res = $self->_socket_getline) {
             # print STDERR "2: $res";
             if ($res =~ /^\*/) {
-				push @$lineparts, $accumulator if @$accumulator;
-				$accumulator = []; 
+                push @$lineparts, $accumulator if @$accumulator;
+                $accumulator = []; 
             }
             if ($res =~ /(.*)\{(\d+)\}\r\n/) {
                 my ($line, $len) = ($1, $2);
@@ -866,11 +866,11 @@ sub _tell_imap2 {
                     $results{$cmdid} = [ $ok, $lineparts, $error ];
                     last;
                 } else {
-                	push @$accumulator, $res;
+                    push @$accumulator, $res;
                 }
             }
         }
-		push @$lineparts, $accumulator if @$accumulator;
+        push @$lineparts, $accumulator if @$accumulator;
         unless (defined $res) {
             goto RETRY2 if $self->_reconnect_if_needed(1);
         }
