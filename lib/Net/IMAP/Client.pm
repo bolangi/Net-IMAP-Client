@@ -847,15 +847,17 @@ sub _tell_imap2 {
     %results = ();
     for (0..$#cmd) {
         my $lineparts = [];
+		my $accumulator = [];
         my $res;
         while ($res = $self->_socket_getline) {
             # print STDERR "2: $res";
             if ($res =~ /^\*/) {
-                push @$lineparts, []; # this is a new line interesting in itself
+				push @$lineparts, $accumulator if @$accumulator;
+				$accumulator = []; 
             }
             if ($res =~ /(.*)\{(\d+)\}\r\n/) {
                 my ($line, $len) = ($1, $2);
-                push @{$lineparts->[-1]},
+                push @$accumulator,
                   $line,
                     $self->_read_literal($len);
             } else {
@@ -864,10 +866,11 @@ sub _tell_imap2 {
                     $results{$cmdid} = [ $ok, $lineparts, $error ];
                     last;
                 } else {
-                    push @{$lineparts->[-1]}, $res;
+                	push @$accumulator, $res;
                 }
             }
         }
+		push @$lineparts, $accumulator if @$accumulator;
         unless (defined $res) {
             goto RETRY2 if $self->_reconnect_if_needed(1);
         }
