@@ -761,15 +761,21 @@ sub _tell_imap {
         redo RETRY1 if $self->_reconnect_if_needed;
     }
 
-    $lineparts = [];
+    $lineparts = [];      # holds results in boxes
+	my $accumulator = []; # box for collecting results
     while ($res = $self->_socket_getline) {
         # print STDERR ">>>>$res<<<<<\n";
+
         if ($res =~ /^\*/) {
-            push @$lineparts, []; # this is a new line interesting in itself
+
+			# store previous box and start a new one
+
+			push @$lineparts, $accumulator if @$accumulator;
+			$accumulator = []; 
         }
         if ($res =~ /(.*)\{(\d+)\}\r\n/) {
             my ($line, $len) = ($1, $2 + 0);
-            push @{$lineparts->[-1]},
+            push @$accumulator,
               $line,
                 $self->_read_literal($len);
         } else {
@@ -777,10 +783,13 @@ sub _tell_imap {
             if (defined($ok)) {
                 last;
             } else {
-                push @{$lineparts->[-1]}, $res;
+                push @$accumulator, $res;
             }
         }
     }
+	# store last box
+	push @$lineparts, $accumulator if @$accumulator;
+
     unless (defined $res) {
         goto RETRY1 if $self->_reconnect_if_needed(1);
     }
