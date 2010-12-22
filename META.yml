@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Net-IMAP-Client
-version:             0.93
+version:             0.94
 abstract:            Not so simple IMAP client library
 license:             ~
 author:              
