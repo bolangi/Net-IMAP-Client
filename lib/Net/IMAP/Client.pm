@@ -48,7 +48,7 @@ sub DESTROY {
     my ($self) = @_;
     eval {
         $self->quit
-          if $self->_get_socket->opened;
+          if $self->{socket}->opened;
     };
 }
 
