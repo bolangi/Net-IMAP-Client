@@ -145,10 +145,19 @@ sub status {
 }
 
 sub select {
-    my ($self, $folder) = @_;
+	my ($self, $folder) = @_;
+	$self->select_or_examine($folder, 'SELECT');
+}
+sub examine {
+	my ($self, $folder) = @_;
+	$self->select_or_examine($folder, 'EXAMINE');
+}
+
+sub select_or_examine {
+    my ($self, $folder, $operation) = @_;
     my $quoted = $folder;
     _string_quote($quoted);
-    my ($ok, $lines) = $self->_tell_imap(SELECT => $quoted);
+    my ($ok, $lines) = $self->_tell_imap($operation => $quoted);
     if ($ok) {
         $self->{selected_folder} = $folder;
         my %info = ();
