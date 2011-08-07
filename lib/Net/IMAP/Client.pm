@@ -1074,13 +1074,13 @@ Net::IMAP::Client - Not so simple IMAP client library
     # get folder hierarchy separator (cached at first call)
     my $sep = $imap->separator;
 
-    # fetch all message ids
-    my @messages = $imap->search('ALL');
+    # fetch all message ids (as array reference)
+    my $messages = $imap->search('ALL');
 
     # fetch all ID-s sorted by subject
     my $messages = $imap->search('ALL', 'SUBJECT');
        # or
-    my @messages = $imap->search('ALL', [ 'SUBJECT' ]);
+    my $messages = $imap->search('ALL', [ 'SUBJECT' ]);
 
     # fetch ID-s that match criteria, sorted by subject and reverse date
     my $messages = $imap->search({
@@ -1100,7 +1100,7 @@ Net::IMAP::Client - Not so simple IMAP client library
     my $data = $imap->get_rfc822_body($msg_id);
     print $$data; # it's reference to a scalar
 
-    # fetch full messageS
+    # fetch full messages
     my @msgs = $imap->get_rfc822_body([ @msg_ids ]);
     print $$_ for (@msgs);
 
