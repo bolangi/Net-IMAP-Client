@@ -301,7 +301,8 @@ sub search {
         my @a;
         while (my ($key, $val) = each %$criteria) {
             my $quoted = $val;
-            _string_quote($quoted);
+			# don't quote range
+            _string_quote($quoted) if $key =~ /^UID$/i;
             push @a, uc $key, $quoted;
         }
         $criteria = '(' . join(' ', @a) . ')';
@@ -1172,7 +1173,7 @@ Pass a true value if you want to use IO::Socket::SSL
 
 =item - B<uid_mode> (BOOL, optional, default TRUE)
 
-Wether to use UID command (see RFC3501).  Recommended.
+Whether to use UID command (see RFC3501).  Recommended.
 
 =item - B<socket> (IO::Handle, optional)
 
