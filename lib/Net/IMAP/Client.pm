@@ -302,7 +302,6 @@ sub search {
         while (my ($key, $val) = each %$criteria) {
             my $quoted = $val;
 			# don't quote range
-            #_string_quote($quoted) if $key =~ /^UID$/i;
 			_string_quote($quoted) unless uc $key eq 'UID';
             push @a, uc $key, $quoted;
         }
