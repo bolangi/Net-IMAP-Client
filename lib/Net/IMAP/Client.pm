@@ -24,6 +24,7 @@ my %DEFAULT_ARGS = (
     user     => undef,
     pass     => undef,
     ssl      => 0,
+    ssl_verify_peer => 1,
     socket   => undef,
     _cmd_id  => 0,
 );
@@ -609,15 +610,51 @@ sub _get_server {
     return $self->{server};
 }
 
+sub _get_ssl_config {
+    my ($self) = @_;
+    if (!$self->{ssl_verify_peer}
+         || !$self->{ssl_ca_path}
+         && !$self->{ssl_ca_file}
+         && $^O ne 'linux') {
+        return SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE;
+    }
+
+    my %ssl_config = ( SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_PEER );
+
+    if ($^O eq 'linux' && !$self->{ssl_ca_path} && !$self->{ssl_ca_file}) {
+        $ssl_config{SSL_ca_path} = '/etc/ssl/certs/';
+    }
+    $ssl_config{SSL_ca_path} = $self->{ssl_ca_path} if $self->{ssl_ca_path};
+    $ssl_config{SSL_ca_file} = $self->{ssl_ca_file} if $self->{ssl_ca_file};
+
+    return %ssl_config;
+}
+
 sub _get_socket {
     my ($self) = @_;
-    my $socket = $self->{socket} ||= ($self->{ssl} ? 'IO::Socket::SSL' : 'IO::Socket::INET')->new(
-        PeerAddr => $self->_get_server,
-        PeerPort => $self->_get_port,
-        Timeout  => $self->_get_timeout,
-        Proto    => 'tcp',
-        Blocking => 1,
-    );
+    unless ($self->{socket}) {
+        if ($self->{ssl}) {
+            $self->{socket} = IO::Socket::SSL->new(
+                PeerAddr => $self->_get_server,
+                PeerPort => $self->_get_port,
+                Timeout  => $self->_get_timeout,
+                Proto    => 'tcp',
+                Blocking => 1,
+                $self->_get_ssl_config,
+            ) or die "failed connect or ssl handshake: $!,$IO::Socket::SSL::SSL_ERROR";
+        }
+        else {
+            $self->{socket} = IO::Socket::INET->new(
+                PeerAddr => $self->_get_server,
+                PeerPort => $self->_get_port,
+                Timeout  => $self->_get_timeout,
+                Proto    => 'tcp',
+                Blocking => 1,
+            ) or die "Can't connect : $@";
+        }
+    }
+    my $socket = $self->{socket};
+
     $socket->sockopt(SO_KEEPALIVE, 1);
     return $socket;
 }
@@ -1039,8 +1076,11 @@ Net::IMAP::Client - Not so simple IMAP client library
         server => 'mail.you.com',
         user   => 'USERID',
         pass   => 'PASSWORD',
-        ssl    => 1,          # (use SSL? default no)
-        port   => 993         # (but defaults are sane)
+        ssl    => 1,                              # (use SSL? default no)
+        ssl_verify_peer => 1,                     # (use ca to verify server, default yes)
+        ssl_ca_file => '/etc/ssl/certs/certa.pm', # (CA file used for verify server) or
+      # ssl_ca_path => '/etc/ssl/certs/',         # (CA path used for SSL)
+        port   => 993                             # (but defaults are sane)
 
     ) or die "Could not connect to IMAP server";
 
@@ -1161,6 +1201,29 @@ Password
 
 Pass a true value if you want to use IO::Socket::SSL
 
+=item - B<ssl_verify_peer> (BOOL, optional, default TRUE)
+
+Pass a false value if you do not want to use SSL CA to verify server
+
+only need when you set ssl to true
+
+=item - B<ssl_ca_file> (STRING, optional)
+
+Pass a file path which used as CA file to verify server
+
+at least one of ssl_ca_file and ssl_ca_path is needed for ssl verify
+ server
+
+=item -B<ssl_ca_path> (STRING, optional)
+
+Pass a dir which will be used as CA file search dir, found CA file
+will be used to verify server
+
+On linux, by default is '/etc/ssl/certs/'
+
+at least one of ssl_ca_file and ssl_ca_path is needed for ssl verify
+ server
+
 =item - B<uid_mode> (BOOL, optional, default TRUE)
 
 Wether to use UID command (see RFC3501).  Recommended.
@@ -1171,6 +1234,13 @@ If you already have a socket connected to the IMAP server, you can
 pass it here.
 
 =back
+
+The B<ssl_ca_file> and B<ssl_ca_path> only need when you set
+B<ssl_verify_peer> to TRUE.
+
+If you havn't apply an B<ssl_ca_file> and B<ssl_ca_path>, on linux,
+the B<ssl_ca_path> will use the value '/etc/ssl/certs/', on other
+platform B<ssl_verify_peer> will be disabled.
 
 The constructor doesn't login to the IMAP server -- you need to call
 $imap->login for that.
