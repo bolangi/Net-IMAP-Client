@@ -27,6 +27,7 @@ my %DEFAULT_ARGS = (
     ssl_verify_peer => 1,
     socket   => undef,
     _cmd_id  => 0,
+    ssl_options => {},
 );
 
 sub new {
@@ -639,12 +640,10 @@ sub _get_ssl_config {
 
     return %ssl_config;
 }
-
 sub _get_socket {
     my ($self) = @_;
-    unless ($self->{socket}) {
-        if ($self->{ssl}) {
-            $self->{socket} = IO::Socket::SSL->new(
+     my $socket = $self->{socket} ||= ($self->{ssl} ? 'IO::Socket::SSL' : 'IO::Socket::INET')->new(
+			( ( %{$self->{ssl_options}} ) x !!$self->{ssl} ), 
                 PeerAddr => $self->_get_server,
                 PeerPort => $self->_get_port,
                 Timeout  => $self->_get_timeout,
@@ -652,19 +651,6 @@ sub _get_socket {
                 Blocking => 1,
                 $self->_get_ssl_config,
             ) or die "failed connect or ssl handshake: $!,$IO::Socket::SSL::SSL_ERROR";
-        }
-        else {
-            $self->{socket} = IO::Socket::INET->new(
-                PeerAddr => $self->_get_server,
-                PeerPort => $self->_get_port,
-                Timeout  => $self->_get_timeout,
-                Proto    => 'tcp',
-                Blocking => 1,
-            ) or die "Can't connect : $@";
-        }
-    }
-    my $socket = $self->{socket};
-
     $socket->sockopt(SO_KEEPALIVE, 1);
     return $socket;
 }
@@ -1233,6 +1219,10 @@ On linux, by default is '/etc/ssl/certs/'
 
 at least one of ssl_ca_file and ssl_ca_path is needed for ssl verify
  server
+
+=item - B<ssl_options> (HASHREF, optional)
+
+Optional arguments to be passed to the L<IO::Socket::SSL> object.
 
 =item - B<uid_mode> (BOOL, optional, default TRUE)
 
