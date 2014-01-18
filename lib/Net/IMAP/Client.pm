@@ -313,10 +313,13 @@ sub search {
     my ($ok, $lines) = $self->_tell_imap($cmd => "$sort$charset $criteria", 1);
     if ($ok) {
         # it makes no sense to employ the full token parser here
-        my $line = $lines->[0]->[0];
-        $line =~ s/^\*\s+(?:SEARCH|SORT)\s+//ig;
-        $line =~ s/\s*$//g;
-        return [ map { $_ + 0 } split(/\s+/, $line) ];
+        # read past progress messages lacking initial '*'
+		foreach my $line (@{$lines->[0]}) {
+			if ($line =~ s/^\*\s+(?:SEARCH|SORT)\s+//ig) {
+				$line =~ s/\s*$//g;
+				return [ map { $_ + 0 } split(/\s+/, $line) ];
+			}
+		}
     }
 
     return undef;
