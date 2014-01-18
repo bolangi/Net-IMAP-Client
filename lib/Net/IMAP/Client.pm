@@ -1,7 +1,7 @@
 package Net::IMAP::Client;
 
 use vars qw[$VERSION];
-$VERSION = '0.94';
+$VERSION = '0.9501';
 
 use strict;
 use warnings;
@@ -49,7 +49,7 @@ sub DESTROY {
     my ($self) = @_;
     eval {
         $self->quit
-          if $self->_get_socket->opened;
+          if $self->{socket}->opened;
     };
 }
 
@@ -146,10 +146,19 @@ sub status {
 }
 
 sub select {
-    my ($self, $folder) = @_;
+	my ($self, $folder) = @_;
+	$self->_select_or_examine($folder, 'SELECT');
+}
+sub examine {
+	my ($self, $folder) = @_;
+	$self->_select_or_examine($folder, 'EXAMINE');
+}
+
+sub _select_or_examine {
+    my ($self, $folder, $operation) = @_;
     my $quoted = $folder;
     _string_quote($quoted);
-    my ($ok, $lines) = $self->_tell_imap(SELECT => $quoted);
+    my ($ok, $lines) = $self->_tell_imap($operation => $quoted);
     if ($ok) {
         $self->{selected_folder} = $folder;
         my %info = ();
@@ -293,7 +302,8 @@ sub search {
         my @a;
         while (my ($key, $val) = each %$criteria) {
             my $quoted = $val;
-            _string_quote($quoted);
+			# don't quote range
+			_string_quote($quoted) unless uc $key eq 'UID';
             push @a, uc $key, $quoted;
         }
         $criteria = '(' . join(' ', @a) . ')';
@@ -1105,13 +1115,13 @@ Net::IMAP::Client - Not so simple IMAP client library
     # get folder hierarchy separator (cached at first call)
     my $sep = $imap->separator;
 
-    # fetch all message ids
-    my @messages = $imap->search('ALL');
+    # fetch all message ids (as array reference)
+    my $messages = $imap->search('ALL');
 
     # fetch all ID-s sorted by subject
     my $messages = $imap->search('ALL', 'SUBJECT');
        # or
-    my @messages = $imap->search('ALL', [ 'SUBJECT' ]);
+    my $messages = $imap->search('ALL', [ 'SUBJECT' ]);
 
     # fetch ID-s that match criteria, sorted by subject and reverse date
     my $messages = $imap->search({
@@ -1131,7 +1141,7 @@ Net::IMAP::Client - Not so simple IMAP client library
     my $data = $imap->get_rfc822_body($msg_id);
     print $$data; # it's reference to a scalar
 
-    # fetch full messageS
+    # fetch full messages
     my @msgs = $imap->get_rfc822_body([ @msg_ids ]);
     print $$_ for (@msgs);
 
@@ -1226,7 +1236,7 @@ at least one of ssl_ca_file and ssl_ca_path is needed for ssl verify
 
 =item - B<uid_mode> (BOOL, optional, default TRUE)
 
-Wether to use UID command (see RFC3501).  Recommended.
+Whether to use UID command (see RFC3501).  Recommended.
 
 =item - B<socket> (IO::Handle, optional)
 
@@ -1312,6 +1322,11 @@ might want to take a look at RFC3501 at this point. :-p
 
 This method is basically stolen from Net::IMAP::Simple.
 
+=head2 examine($folder)
+
+Selects the current IMAP folder in read-only (EXAMINE) mode.
+Otherwise identical to select.
+ 
 =head2 status($folder), status(\@folders)
 
 Returns the status of the given folder(s).

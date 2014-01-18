@@ -1,5 +1,10 @@
 Revision history for Net-IMAP-Client
 
+0.95    Apr 9, 2011
+
+        - fix #48163 error after logout
+        - add examine() method (identical to select(); keyword differs)
+
 0.94    Dec 22, 2010
 
         - fix #56647 rfc822 attachment mishandling
