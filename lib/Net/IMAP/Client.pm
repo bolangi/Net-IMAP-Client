@@ -283,7 +283,6 @@ sub search {
     my ($self, $criteria, $sort, $charset) = @_;
 
     $charset ||= 'UTF-8';
-    _string_quote($charset);
 
     my $cmd = $sort ? 'SORT' : 'SEARCH';
     if ($sort) {
