@@ -1,7 +1,7 @@
 package Net::IMAP::Client;
 
 use vars qw[$VERSION];
-$VERSION = '0.9503';
+$VERSION = '0.9504';
 
 use strict;
 use warnings;
@@ -636,6 +636,8 @@ sub _get_ssl_config {
 
     if ($^O eq 'linux' && !$self->{ssl_ca_path} && !$self->{ssl_ca_file}) {
         $ssl_config{SSL_ca_path} = '/etc/ssl/certs/';
+		-d $ssl_config{SSL_ca_path} 
+			or die "$ssl_config{SSL_ca_path}: SSL certification directory not found";
     }
     $ssl_config{SSL_ca_path} = $self->{ssl_ca_path} if $self->{ssl_ca_path};
     $ssl_config{SSL_ca_file} = $self->{ssl_ca_file} if $self->{ssl_ca_file};
