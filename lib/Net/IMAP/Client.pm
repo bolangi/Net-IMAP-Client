@@ -635,7 +635,9 @@ sub _get_ssl_config {
     my %ssl_config = ( SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_PEER );
 
     if ($^O eq 'linux' && !$self->{ssl_ca_path} && !$self->{ssl_ca_file}) {
-        $ssl_config{SSL_ca_path} = '/etc/ssl/certs/';
+        $ssl_config{SSL_ca_path} = 
+			-d '/etc/ssl/certs/' ? '/etc/ssl/certs/' : '/etc/pki/tls/certs/'; 
+
 		-d $ssl_config{SSL_ca_path} 
 			or die "$ssl_config{SSL_ca_path}: SSL certification directory not found";
     }
