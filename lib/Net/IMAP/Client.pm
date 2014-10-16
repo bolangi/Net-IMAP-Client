@@ -48,6 +48,7 @@ sub new {
 
 sub DESTROY {
     my ($self) = @_;
+	local $@;
     eval {
         $self->quit
           if $self->{socket}->opened;
