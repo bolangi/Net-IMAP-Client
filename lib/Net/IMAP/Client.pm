@@ -1,7 +1,7 @@
 package Net::IMAP::Client;
 
 use vars qw[$VERSION];
-$VERSION = '0.9506';
+$VERSION = '0.9507';
 
 use strict;
 use warnings;
