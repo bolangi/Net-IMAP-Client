@@ -280,6 +280,22 @@ sub seq_to_uid {
     return undef;
 }
 
+{ my %no_args = map{ $_, 1} qw(
+	ALL
+	ANSWERED
+	DELETED
+	DRAFT
+	FLAGGED
+	NEW
+	OLD
+	RECENT
+	SEEN
+	UNANSWERED
+	UNDELETED
+	UNDRAFT
+	UNFLAGGED
+	UNSEEN
+	);
 sub search {
     my ($self, $criteria, $sort, $charset) = @_;
 
@@ -302,10 +318,13 @@ sub search {
     if (ref($criteria) eq 'HASH') {
         my @a;
         while (my ($key, $val) = each %$criteria) {
+            $key = uc $key;
+            push @a, $key;
+            next if $no_args{$key};
+            # don't quote range
             my $quoted = $val;
-			# don't quote range
-			_string_quote($quoted) unless uc $key eq 'UID';
-            push @a, uc $key, $quoted;
+            _string_quote($quoted) unless $key eq 'UID';
+            push @a, $quoted;
         }
         $criteria = '(' . join(' ', @a) . ')';
     }
@@ -323,6 +342,7 @@ sub search {
     }
 
     return undef;
+}
 }
 
 sub get_rfc822_body {
