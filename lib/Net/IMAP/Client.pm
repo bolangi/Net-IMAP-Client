@@ -25,6 +25,7 @@ my %DEFAULT_ARGS = (
     pass     => undef,
     ssl      => 0,
     ssl_verify_peer => 1,
+    tls      => 0,
     socket   => undef,
     _cmd_id  => 0,
     ssl_options => {},
@@ -37,12 +38,15 @@ sub new {
         $_ => exists $args{$_} ? $args{$_} : $DEFAULT_ARGS{$_}
     } keys %DEFAULT_ARGS };
 
+    die "Cannot enable both ssl and tls" if ($self->{tls} and $self->{ssl});
+
     bless $self, $class;
 
     $self->{notifications} = [];
     eval {
-        $self->{greeting} = $self->_socket_getline;
+        $self->_get_socket;     # set up the socket
     };
+
     return $@ ? undef : $self;
 }
 
@@ -669,7 +673,11 @@ sub _get_ssl_config {
 }
 sub _get_socket {
     my ($self) = @_;
-     my $socket = $self->{socket} ||= ($self->{ssl} ? 'IO::Socket::SSL' : 'IO::Socket::INET')->new(
+
+    my $socket = $self->{socket};
+    return $socket if (defined($socket) and ($socket->isa('IO::Socket::SSL')or $socket->isa('IO::Socket::INET')));
+
+    $self->{socket} = ($self->{ssl} ? 'IO::Socket::SSL' : 'IO::Socket::INET')->new(
 			( ( %{$self->{ssl_options}} ) x !!$self->{ssl} ), 
                 PeerAddr => $self->_get_server,
                 PeerPort => $self->_get_port,
@@ -678,8 +686,44 @@ sub _get_socket {
                 Blocking => 1,
                 $self->_get_ssl_config,
             ) or die "failed connect or ssl handshake: $!,$IO::Socket::SSL::SSL_ERROR";
-    $socket->sockopt(SO_KEEPALIVE, 1);
-    return $socket;
+    $self->{socket}->sockopt(SO_KEEPALIVE, 1);
+
+    $self->{greeting} = $self->_socket_getline; # get the initial greeting
+
+    $self->_starttls if ($self->{tls});         # upgrade to TLS if needed
+
+    return $self->{socket};
+}
+
+sub _starttls {
+    my ($self) = @_;
+
+    # ask for the capabilities directly at this level, make sure we can do STARTTLS
+    my $can_do_starttls = 0;
+    my ($ok, $lines) = $self->_tell_imap('CAPABILITY');
+    if ($ok) {
+        my $line = $lines->[0][0];
+        $can_do_starttls ||= 1 if ($line =~ /^\*\s+CAPABILITY.*\s+STARTTLS/);
+    } else {
+        die "IMAP server failed CAPABILITY query"
+    }
+    die "IMAP server does not have STARTTLS capability" unless ($can_do_starttls);
+
+    # request STARTTLS
+    ($ok, $lines) = $self->_tell_imap('STARTTLS');
+    if ($ok) {
+        my @sni_args;
+        push(@sni_args, SSL_hostname => $self->_get_server) if (IO::Socket::SSL->can_client_sni());
+        IO::Socket::SSL->start_SSL(
+            $self->{socket},
+            $self->_get_ssl_config,
+            @sni_args,
+        ) or die $IO::Socket::SSL::SSL_ERROR;
+    } else {
+        die "IMAP server failed STARTTLS command"
+    }
+
+    return $self->{socket};
 }
 
 sub _get_next_id {
@@ -1222,7 +1266,16 @@ Password
 
 =item - B<ssl> (BOOL, optional, default FALSE)
 
-Pass a true value if you want to use IO::Socket::SSL
+Pass a true value if you want to use L<IO::Socket::SSL>
+You may not set both C<ssl> and C<tls> at the same time.
+
+=item - B<tls> (BOOL, optional, default FALSE)
+
+Pass a true value if you want to use connect without SSL and then use
+C<STARTTLS> to upgrade the connection to an encrypted session using
+L<IO::Socket::SSL>.  The other C<ssl_*> options also apply.
+
+You may not set both C<ssl> and C<tls> at the same time.
 
 =item - B<ssl_verify_peer> (BOOL, optional, default TRUE)
 
