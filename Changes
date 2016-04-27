@@ -10,7 +10,13 @@ Revision history for Net-IMAP-Client
 0.9506  July 23, 2014
 
         - check for Red Hat certs directory location
+
+0.9505  July 23, 2014
+
         - check for existence of SSL cert directory and throw exception if it is not found
+
+0.9504  Jan 19, 2014
+
         - don't quote $charset var (fixes RT#77372, Broken SORT)
 
 0.9503  Jan 18, 2014
