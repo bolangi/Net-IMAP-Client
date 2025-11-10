@@ -1051,7 +1051,7 @@ sub _parse_tokens {
                 push @{$stack[-1]}, $str; # found string
             } elsif ($text =~ m/\G(\d+)/gc) {
                 push @{$stack[-1]}, $1 + 0; # found numeric
-            } elsif ($text =~ m/\G([a-zA-Z0-9_\$\\.+\/*&-]+)/gc) {
+            } elsif ($text =~ m/\G ([ a-z A-Z 0-9 _ $ . + \/ & ! # ' , : ; < = > ? @ ^ ` ~ | } - ]+ )/gcxx){
                 my $atom = $1;
                 if (lc $atom eq 'nil') {
                     $atom = undef;
