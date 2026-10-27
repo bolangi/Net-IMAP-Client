@@ -335,14 +335,21 @@ sub search {
 
     my ($ok, $lines) = $self->_tell_imap($cmd => "$sort$charset $criteria", 1);
     if ($ok) {
-        # it makes no sense to employ the full token parser here
-        # read past progress messages lacking initial '*'
-		foreach my $line (@{$lines->[0]}) {
-			if ($line =~ s/^\*\s+(?:SEARCH|SORT)\s+//ig) {
-				$line =~ s/\s*$//g;
-				return [ map { $_ + 0 } split(/\s+/, $line) ];
-			}
-		}
+        # Untagged progress replies and results occupy separate groups.
+        # Collect all matching replies without modifying the response text.
+        my (@ids, $found);
+        foreach my $group (@$lines) {
+            foreach my $line (@$group) {
+                next if ref $line;
+                if ($line =~ /^\*\s+\Q$cmd\E(?:\s+(.*?))?\s*$/i) {
+                    my $ids = $1;
+                    $found = 1;
+                    push @ids, map { $_ + 0 } split(/\s+/, $ids)
+                        if defined($ids) && length($ids);
+                }
+            }
+        }
+        return \@ids if $found;
     }
 
     return undef;
@@ -844,7 +851,8 @@ sub _reconnect_if_needed {
     my ($self, $force) = @_;
     if ($force || !$self->_get_socket->connected) {
         $self->{socket} = undef;
-        $self->{greeting} = $self->_socket_getline;
+        # _get_socket reads and stores the new connection greeting.
+        $self->_get_socket;
         if ($self->login) {
             if ($self->{selected_folder}) {
                 $self->select($self->{selected_folder});
@@ -1081,7 +1089,7 @@ sub _handle_notification {
                 $not = { seq   => $tokens->[1] + 0,
                          flags => $flags };
                 if (first { $_ eq '\\Deleted' } @$flags) {
-                    --$sf->{messages};
+                    # The message still exists until EXPUNGE.
                     $not->{deleted} = 1;
                 }
                 if ($data{UID}) {
@@ -1106,7 +1114,13 @@ sub _handle_notification {
             $not = { flags => $tokens->[2] };
 
         } elsif ($tokens->[1] eq 'OK') {
-            $sf->{sflags}{$tokens->[2][0]} = $tokens->[2][1];
+            # The bracketed response code is optional on an untagged OK.
+            my $code = $tokens->[2];
+            if (ref($code) eq 'ARRAY' && @$code) {
+                $sf->{sflags}{$code->[0]} = $code->[1];
+            }
+            # This reply is consumed, even though it creates no notification.
+            return 1;
         }
     }
 

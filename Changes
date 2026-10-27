@@ -1,5 +1,13 @@
 Revision history for Net-IMAP-Client
 
+Unreleased
+         - accept plain untagged OK replies without treating their text as
+           a bracketed response code
+         - collect SEARCH/SORT results from all response groups
+         - keep mailbox message counts unchanged when Deleted flags arrive
+         - avoid reading the greeting twice when reconnecting
+         - add offline regression tests for these cases
+
 0.9511  Nov 18, 2025
          - update to Changes file omitted in previous patch
 
